@@ -7,21 +7,14 @@ import {
   Loader2,
   ChevronDown,
 } from 'lucide-react';
-import {
-  Theme,
-  DrawRecord,
-  loadKeywords,
-  saveKeywords,
-  loadThemes,
-  saveThemes,
-  addHistoryRecord,
-  generateId,
-  DEFAULT_THEMES,
-} from '@/utils/storage';
+import { DrawRecord, addHistoryRecord, generateId } from '@/utils/storage';
+import { WORD_POOL } from '@/utils/wordPool';
 import HistoryPanel from './History';
 
-const MAX_DRAW = 10; // 最多抽取数量（下拉菜单 1-10）
-const MAX_APPEND_AT_ONCE = 50; // 一次性从主题追加关键词的最大数量上限
+const CATEGORIES = Object.keys(WORD_POOL);
+const MAX_DRAW = CATEGORIES.length; // 每个类别只抽一个，最多抽 MAX_DRAW 个类别
+const TOTAL_WORDS = CATEGORIES.reduce((sum, c) => sum + WORD_POOL[c].length, 0);
+const ALL_WORDS = CATEGORIES.flatMap(c => WORD_POOL[c]);
 
 interface ReelState {
   word: string;
@@ -45,67 +38,27 @@ function Reel({ reel, fontSize }: { reel: ReelState; fontSize: string }) {
 }
 
 export default function Inspire() {
-  const [keywords, setKeywords] = useState<string[]>([]);
-  const [themes, setThemes] = useState<Theme[]>([]);
   const [drawCount, setDrawCount] = useState(3);
-  const [selectedThemeId, setSelectedThemeId] = useState<string>('');
-  const [customInput, setCustomInput] = useState('');
   const [reels, setReels] = useState<ReelState[]>(() =>
     Array(3).fill(null).map(() => ({ word: '', phase: 'idle' as const, target: '', stopDelay: 0 })),
   );
   const [copied, setCopied] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
-
-  // 主题编辑器状态
-  const [showThemeEditor, setShowThemeEditor] = useState(false);
-  const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
-  const [themeNameInput, setThemeNameInput] = useState('');
-  const [themeWordsInput, setThemeWordsInput] = useState('');
-
-  // 从主题追加关键词到池的数量
-  const [appendCount, setAppendCount] = useState(20);
-
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // 触发历史刷新
 
   const spinIdRef = useRef(0);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const spinning = reels.some(r => r.phase === 'spinning');
   const allStopped = reels.length > 0 && reels.every(r => r.phase === 'stopped');
-  const canSpin = keywords.length >= drawCount && !spinning;
+  const canSpin = CATEGORIES.length >= drawCount && !spinning;
   const results = reels.filter(r => r.phase === 'stopped').map(r => r.target);
 
-  const reelFontSize = drawCount <= 2 ? '1.875rem' : drawCount <= 4 ? '1.5rem' : '1.25rem';
-  const selectedTheme = themes.find(t => t.id === selectedThemeId);
-
-  // ═══ 初始化加载 ═══
-  useEffect(() => {
-    let loadedThemes = loadThemes();
-    if (loadedThemes.length === 0) {
-      loadedThemes = [...DEFAULT_THEMES];
-      saveThemes(loadedThemes);
-    }
-    setThemes(loadedThemes);
-
-    const loadedKeywords = loadKeywords();
-    if (loadedKeywords.length === 0 && loadedThemes.length > 0) {
-      // 首次：用第一个主题填充默认关键词池
-      const initial = [...loadedThemes[0].words];
-      setKeywords(initial);
-      saveKeywords(initial);
-    } else {
-      setKeywords(loadedKeywords);
-    }
-
-    if (loadedThemes.length > 0) setSelectedThemeId(loadedThemes[0].id);
-  }, []);
-
-  // 关键词池变化时保存
-  useEffect(() => {
-    if (keywords.length > 0 || localStorage.getItem('inspire-keywords')) {
-      saveKeywords(keywords);
-    }
-  }, [keywords]);
+  const reelFontSize =
+    drawCount <= 2 ? '1.875rem'
+    : drawCount <= 4 ? '1.5rem'
+    : drawCount <= 6 ? '1.375rem'
+    : drawCount <= 8 ? '1.25rem'
+    : '1.0625rem';
 
   // 全部停止时触发光效
   useEffect(() => {
@@ -127,15 +80,20 @@ export default function Inspire() {
     );
   }, [spinning]);
 
-  // ═══ 抽选 ═══
+  // ═══ 抽选：每个类别只抽一个词 ═══
   const spin = useCallback(() => {
-    if (keywords.length < drawCount) return;
+    if (CATEGORIES.length < drawCount) return;
 
-    const shuffled = [...keywords].sort(() => Math.random() - 0.5);
-    const targets = shuffled.slice(0, drawCount);
+    // 随机选 drawCount 个不同类别，每个类别随机抽 1 个词
+    const shuffledCats = [...CATEGORIES].sort(() => Math.random() - 0.5);
+    const selectedCats = shuffledCats.slice(0, drawCount);
+    const targets = selectedCats.map(cat => {
+      const words = WORD_POOL[cat];
+      return words[Math.floor(Math.random() * words.length)];
+    });
 
     const newReels: ReelState[] = targets.map((target, i) => ({
-      word: keywords[Math.floor(Math.random() * keywords.length)],
+      word: ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)],
       phase: 'spinning' as const,
       target,
       stopDelay: 1200 + i * 500,
@@ -152,7 +110,7 @@ export default function Inspire() {
         const elapsed = Date.now() - startTime;
 
         if (elapsed < reel.stopDelay) {
-          const randomWord = keywords[Math.floor(Math.random() * keywords.length)];
+          const randomWord = ALL_WORDS[Math.floor(Math.random() * ALL_WORDS.length)];
           setReels(prev => {
             const updated = [...prev];
             if (updated[i]) updated[i] = { ...updated[i], word: randomWord };
@@ -178,125 +136,13 @@ export default function Inspire() {
       const record: DrawRecord = {
         id: generateId(),
         words: targets,
-        poolSnapshot: [...keywords], // 记录抽取时的词池快照
         source: 'pool',
         createdAt: Date.now(),
       };
       addHistoryRecord(record);
       setHistoryRefreshKey(k => k + 1); // 刷新历史面板
     }, 1200 + (drawCount - 1) * 500 + 100);
-  }, [keywords, drawCount]);
-
-  // ═══ 关键词管理 ═══
-  const addKeyword = useCallback(() => {
-    const trimmed = customInput.trim();
-    if (!trimmed) return;
-    const words = trimmed.split(/[,，、\s\n]+/).filter(w => w && !keywords.includes(w));
-    if (words.length > 0) {
-      setKeywords(prev => [...prev, ...words]);
-      setCustomInput('');
-      inputRef.current?.focus();
-    }
-  }, [customInput, keywords]);
-
-  const removeKeyword = useCallback((kw: string) => {
-    setKeywords(prev => prev.filter(k => k !== kw));
-  }, []);
-
-  // ═══ 从主题追加关键词到词池（不替换，可多次选不同主题追加） ═══
-  const appendFromTheme = useCallback(() => {
-    if (!selectedTheme) return;
-    const pool = selectedTheme.words;
-    if (pool.length === 0) return;
-
-    // 从主题词库随机抽取 appendCount 个（不重复）
-    const count = Math.min(appendCount, pool.length);
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, count);
-
-    // 追加到词池（去重）
-    setKeywords(prev => {
-      const existing = new Set(prev);
-      const added: string[] = [];
-      for (const w of shuffled) {
-        if (!existing.has(w)) {
-          existing.add(w);
-          added.push(w);
-        }
-      }
-      return [...prev, ...added];
-    });
-
-    // 记录历史（记录这次追加的词 + 追加前的词池快照）
-    const record: DrawRecord = {
-      id: generateId(),
-      words: shuffled,
-      poolSnapshot: [...keywords], // 追加前的词池
-      source: 'theme',
-      sourceName: selectedTheme.name,
-      createdAt: Date.now(),
-    };
-    addHistoryRecord(record);
-    setHistoryRefreshKey(k => k + 1); // 刷新历史面板
-  }, [selectedTheme, appendCount, keywords]);
-
-  // ═══ 主题编辑器 ═══
-  const openThemeEditor = useCallback((theme: Theme | null) => {
-    if (theme) {
-      setEditingTheme(theme);
-      setThemeNameInput(theme.name);
-      setThemeWordsInput(theme.words.join('、'));
-    } else {
-      setEditingTheme(null);
-      setThemeNameInput('');
-      setThemeWordsInput('');
-    }
-    setShowThemeEditor(true);
-  }, []);
-
-  const saveTheme = useCallback(() => {
-    const name = themeNameInput.trim();
-    if (!name) return;
-    const words = themeWordsInput
-      .split(/[,，、\s\n]+/)
-      .map(w => w.trim())
-      .filter(w => w.length > 0);
-
-    if (editingTheme) {
-      // 编辑现有主题
-      const updated = themes.map(t =>
-        t.id === editingTheme.id ? { ...t, name, words } : t
-      );
-      setThemes(updated);
-      saveThemes(updated);
-    } else {
-      // 新建主题
-      const newTheme: Theme = {
-        id: generateId(),
-        name,
-        words,
-        createdAt: Date.now(),
-      };
-      const updated = [...themes, newTheme];
-      setThemes(updated);
-      saveThemes(updated);
-      setSelectedThemeId(newTheme.id);
-    }
-
-    setShowThemeEditor(false);
-    setEditingTheme(null);
-    setThemeNameInput('');
-    setThemeWordsInput('');
-  }, [themeNameInput, themeWordsInput, editingTheme, themes]);
-
-  const deleteTheme = useCallback((id: string) => {
-    if (!confirm('确定删除这个主题吗？')) return;
-    const updated = themes.filter(t => t.id !== id);
-    setThemes(updated);
-    saveThemes(updated);
-    if (selectedThemeId === id) {
-      setSelectedThemeId(updated.length > 0 ? updated[0].id : '');
-    }
-  }, [themes, selectedThemeId]);
+  }, [drawCount]);
 
   // ═══ 复制结果 ═══
   const copyResults = useCallback(() => {
@@ -320,13 +166,6 @@ export default function Inspire() {
     return () => window.removeEventListener('keydown', handleKey);
   }, [canSpin, spin]);
 
-  const handleInputKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addKeyword();
-    }
-  };
-
   return (
     <div className="h-screen overflow-y-auto bg-[#0a0a14] inspire-bg px-4 py-8 font-['Noto_Sans_SC',sans-serif]">
       <div className="mx-auto max-w-5xl space-y-6">
@@ -337,7 +176,7 @@ export default function Inspire() {
           </div>
           <div>
             <h1 className="text-xl font-semibold text-white">灵感老虎机</h1>
-            <p className="text-sm text-white/40">为创作注入随机灵感</p>
+            <p className="text-sm text-white/40">共 {CATEGORIES.length} 类 · {TOTAL_WORDS} 词 · 每类抽一个</p>
           </div>
         </div>
 
@@ -405,11 +244,6 @@ export default function Inspire() {
 
           {canSpin && (
             <span className="text-[10px] text-white/20 font-mono">按 Space 键抽选</span>
-          )}
-          {!canSpin && !spinning && keywords.length < drawCount && (
-            <span className="text-[10px] text-white/20">
-              至少需要 {drawCount} 个关键词（当前 {keywords.length} 个）
-            </span>
           )}
         </div>
 
