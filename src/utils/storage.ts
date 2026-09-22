@@ -1,4 +1,4 @@
-// ═══ 灵感老虎机本地存储 ═══
+// ═══ 灵感扭蛋机本地存储 ═══
 
 export interface DrawRecord {
   id: string;

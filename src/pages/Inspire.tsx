@@ -6,6 +6,8 @@ import {
   Dices,
   Loader2,
   ChevronDown,
+  HelpCircle,
+  X,
 } from 'lucide-react';
 import { DrawRecord, addHistoryRecord, generateId } from '@/utils/storage';
 import { WORD_POOL } from '@/utils/wordPool';
@@ -45,6 +47,7 @@ export default function Inspire() {
   const [copied, setCopied] = useState(false);
   const [showBurst, setShowBurst] = useState(false);
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0); // 触发历史刷新
+  const [showHelp, setShowHelp] = useState(false); // 使用说明弹窗
 
   const spinIdRef = useRef(0);
 
@@ -175,12 +178,22 @@ export default function Inspire() {
             <Sparkles className="h-5 w-5 text-[#00d4aa]" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-white">灵感老虎机</h1>
-            <p className="text-sm text-white/40">共 {CATEGORIES.length} 类 · {TOTAL_WORDS} 词 · 每类抽一个</p>
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-xl font-semibold text-white">灵感扭蛋机</h1>
+              <button
+                onClick={() => setShowHelp(true)}
+                className="text-white/30 hover:text-[#00d4aa] transition-colors"
+                title="使用说明"
+                aria-label="使用说明"
+              >
+                <HelpCircle className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="text-sm text-white/40">共 {CATEGORIES.length} 类 · {TOTAL_WORDS} 词</p>
           </div>
         </div>
 
-        {/* ═══ 老虎机 ═══ */}
+        {/* ═══ 扭蛋机 ═══ */}
         <div className="slot-cabinet relative p-6">
           {showBurst && <div className="burst-overlay" />}
 
@@ -277,6 +290,37 @@ export default function Inspire() {
 
         {/* ═══ 抽取历史（内嵌） ═══ */}
         <HistoryPanel refreshKey={historyRefreshKey} />
+
+        {/* ═══ 使用说明弹窗 ═══ */}
+        {showHelp && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+            onClick={() => setShowHelp(false)}
+          >
+            <div
+              className="max-w-md rounded-2xl border border-white/10 bg-[#0f0f1a] p-6 text-sm leading-relaxed text-white/70 shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-base font-semibold text-white">关于</h2>
+                <button
+                  onClick={() => setShowHelp(false)}
+                  className="text-white/40 transition-colors hover:text-white"
+                  aria-label="关闭"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                <p>这个网页是一个随机抽取几个关键词、为艺术创作提供灵感的小工具。</p>
+                <p>它诞生于一次练习：当时我没有灵感，翻遍各大平台也没找到类似的网页，于是就用 AI 辅助自己搓了一个。它比较简陋，但完全免费，没有广告，也没有任何商业目的，只是想着既然做出来了，就分享给大家。</p>
+                <p>抽到的关键词只是灵感起点，不必被它们限制，你可以自由组合、改写、延伸。</p>
+                <p>如果你有想添加的关键词，或者想给我反馈，可以在各大平台找我（ID：床_Toko）。</p>
+                <p>如果喜欢的人多，我会考虑继续添加其他功能。</p>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 }

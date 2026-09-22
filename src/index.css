@@ -186,7 +186,7 @@ textarea {
   color: #fff;
 }
 
-/* ═══ 灵感老虎机 ═══ */
+/* ═══ 灵感扭蛋机 ═══ */
 
 /* 背景氛围 */
 .inspire-bg {
@@ -195,7 +195,7 @@ textarea {
     radial-gradient(circle at 80% 70%, rgba(255, 107, 157, 0.03) 0%, transparent 50%);
 }
 
-/* 老虎机机柜 */
+/* 扭蛋机机柜 */
 .slot-cabinet {
   background: linear-gradient(180deg, #0d0d1a 0%, #131325 50%, #0d0d1a 100%);
   border-radius: 1.5rem;
