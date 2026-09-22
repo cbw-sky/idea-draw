@@ -170,126 +170,129 @@ export default function Inspire() {
   }, [canSpin, spin]);
 
   return (
-    <div className="h-screen overflow-y-auto bg-[#0a0a14] inspire-bg px-4 py-8 font-['Noto_Sans_SC',sans-serif]">
-      <div className="mx-auto max-w-5xl space-y-6">
-        {/* ═══ 头部 ═══ */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00d4aa]/10">
-            <Sparkles className="h-5 w-5 text-[#00d4aa]" />
+    <div className="min-h-screen bg-[#0a0a14] inspire-bg font-['Noto_Sans_SC',sans-serif]">
+      {/* ═══ 首屏：占满视口，垂直布局 ═══ */}
+      <div className="flex h-screen flex-col px-4 py-5">
+        <div className="mx-auto flex w-full max-w-md flex-1 flex-col">
+          {/* ═══ 头部 ═══ */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#00d4aa]/10">
+              <Sparkles className="h-5 w-5 text-[#00d4aa]" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-lg font-semibold text-white">灵感扭蛋机</h1>
+                <button
+                  onClick={() => setShowHelp(true)}
+                  className="text-white/30 hover:text-[#00d4aa] transition-colors"
+                  title="使用说明"
+                  aria-label="使用说明"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                </button>
+              </div>
+              <p className="text-xs text-white/40">共 {CATEGORIES.length} 类 · {TOTAL_WORDS} 词</p>
+            </div>
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h1 className="text-xl font-semibold text-white">灵感扭蛋机</h1>
-              <button
-                onClick={() => setShowHelp(true)}
-                className="text-white/30 hover:text-[#00d4aa] transition-colors"
-                title="使用说明"
-                aria-label="使用说明"
-              >
-                <HelpCircle className="h-4 w-4" />
+
+          {/* ═══ 扭蛋机（占据剩余空间，垂直居中） ═══ */}
+          <div className="flex flex-1 flex-col justify-center py-4">
+            <div className="slot-cabinet relative p-4">
+              {showBurst && <div className="burst-overlay" />}
+
+              <div className="led-strip mb-3">
+                {Array(12).fill(null).map((_, i) => (
+                  <span key={i} className="led-dot" style={{ animationDelay: `${(i % 6) * 0.15}s` }} />
+                ))}
+              </div>
+
+              <div className="flex gap-2 mb-3">
+                {reels.map((reel, i) => (
+                  <Reel key={i} reel={reel} fontSize={reelFontSize} />
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center min-h-[24px]">
+                {allStopped && (
+                  <div className="results-bar flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#ffd93d]" />
+                    <span className="text-xs text-white/60">灵感已抽取</span>
+                  </div>
+                )}
+                {spinning && (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-[#00d4aa]" />
+                    <span className="text-xs text-white/40">抽取中...</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ═══ 抽选按钮区 ═══ */}
+          <div className="flex flex-col items-center gap-2.5 pb-1">
+            <div className="flex items-center justify-center gap-3">
+              <div className="flex items-center gap-1.5 text-sm text-white/60">
+                <span>抽取</span>
+                <div className="relative">
+                  <select
+                    value={drawCount}
+                    onChange={e => updateDrawCount(parseInt(e.target.value))}
+                    disabled={spinning}
+                    className="appearance-none rounded-lg border border-white/10 bg-[#0f0f0f] pl-2 pr-7 py-2 text-sm text-white outline-none focus:border-[#00d4aa]/60 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+                  >
+                    {Array.from({ length: MAX_DRAW }, (_, i) => i + 1).map(n => (
+                      <option key={n} value={n}>{n}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+                </div>
+                <span>个</span>
+              </div>
+
+              <button onClick={spin} disabled={!canSpin} className="spin-button">
+                {spinning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Dices className="h-5 w-5" />}
+                {spinning ? '抽取中' : '开始抽选'}
               </button>
             </div>
-            <p className="text-sm text-white/40">共 {CATEGORIES.length} 类 · {TOTAL_WORDS} 词</p>
-          </div>
-        </div>
 
-        {/* ═══ 扭蛋机 ═══ */}
-        <div className="slot-cabinet relative p-6">
-          {showBurst && <div className="burst-overlay" />}
-
-          <div className="led-strip mb-4">
-            {Array(16).fill(null).map((_, i) => (
-              <span key={i} className="led-dot" style={{ animationDelay: `${(i % 8) * 0.15}s` }} />
-            ))}
-          </div>
-
-          <div className="flex gap-3 mb-4">
-            {reels.map((reel, i) => (
-              <Reel key={i} reel={reel} fontSize={reelFontSize} />
-            ))}
-          </div>
-
-          <div className="flex items-center justify-center min-h-[28px]">
-            {allStopped && (
-              <div className="results-bar flex items-center gap-2">
-                <Sparkles className="h-3.5 w-3.5 text-[#ffd93d]" />
-                <span className="text-sm text-white/60">灵感已抽取</span>
-              </div>
-            )}
-            {spinning && (
-              <div className="flex items-center gap-2">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#00d4aa]" />
-                <span className="text-sm text-white/40">抽取中...</span>
-              </div>
+            {canSpin && (
+              <span className="hidden md:inline text-[10px] text-white/20 font-mono">按 Space 键抽选</span>
             )}
           </div>
-        </div>
 
-        {/* ═══ 抽选按钮区（居中） ═══ */}
-        <div className="flex flex-col items-center gap-3">
-          {/* 抽取数量 + 抽选按钮（水平居中，下拉在左，按钮在右） */}
-          <div className="flex items-center justify-center gap-3">
-            {/* 抽取N个 下拉（"抽取"和"个"固定，N可变） */}
-            <div className="flex items-center gap-1.5 text-sm text-white/60">
-              <span>抽取</span>
-              <div className="relative">
-                <select
-                  value={drawCount}
-                  onChange={e => updateDrawCount(parseInt(e.target.value))}
-                  disabled={spinning}
-                  className="appearance-none rounded-lg border border-white/10 bg-[#0f0f0f] pl-2 pr-7 py-1.5 text-sm text-white outline-none focus:border-[#00d4aa]/60 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+          {/* ═══ 结果栏 ═══ */}
+          {allStopped && results.length > 0 && (
+            <div className="results-bar mt-3 flex items-center justify-between rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-3.5 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[10px] text-white/40 shrink-0">结果</span>
+                <span className="text-xs font-medium text-[#00d4aa] truncate">{results.join(' · ')}</span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                <button
+                  onClick={copyResults}
+                  className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 transition-all hover:text-white hover:border-white/20"
                 >
-                  {Array.from({ length: MAX_DRAW }, (_, i) => i + 1).map(n => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30 pointer-events-none" />
+                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                  {copied ? '已复制' : '复制'}
+                </button>
+                <button
+                  onClick={spin}
+                  className="flex items-center gap-1 rounded-lg bg-[#00d4aa]/15 px-2.5 py-1.5 text-xs font-medium text-[#00d4aa] transition-all hover:bg-[#00d4aa]/25"
+                >
+                  <Dices className="h-3.5 w-3.5" />
+                  再来
+                </button>
               </div>
-              <span>个</span>
             </div>
-
-            {/* 抽选按钮 */}
-            <button onClick={spin} disabled={!canSpin} className="spin-button">
-              {spinning ? <Loader2 className="h-5 w-5 animate-spin" /> : <Dices className="h-5 w-5" />}
-              {spinning ? '抽取中' : '开始抽选'}
-            </button>
-          </div>
-
-          {canSpin && (
-            <span className="text-[10px] text-white/20 font-mono">按 Space 键抽选</span>
           )}
         </div>
-
-        {/* ═══ 结果栏 ═══ */}
-        {allStopped && results.length > 0 && (
-          <div className="results-bar flex items-center justify-between rounded-xl border border-[#00d4aa]/20 bg-[#00d4aa]/5 px-5 py-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="text-xs text-white/40 shrink-0">抽取结果</span>
-              <span className="text-sm font-medium text-[#00d4aa] truncate">{results.join(' · ')}</span>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 ml-3">
-              <button
-                onClick={copyResults}
-                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60 transition-all hover:text-white hover:border-white/20"
-              >
-                {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                {copied ? '已复制' : '复制'}
-              </button>
-              <button
-                onClick={spin}
-                className="flex items-center gap-1.5 rounded-lg bg-[#00d4aa]/15 px-3 py-1.5 text-xs font-medium text-[#00d4aa] transition-all hover:bg-[#00d4aa]/25"
-              >
-                <Dices className="h-3.5 w-3.5" />
-                再来一次
-              </button>
-            </div>
-          </div>
-        )}
-
       </div>
 
-        {/* ═══ 抽取历史（内嵌） ═══ */}
+      {/* ═══ 抽取历史（首屏下方，滚动可见） ═══ */}
+      <div className="mx-auto w-full max-w-md px-4 pb-8">
         <HistoryPanel refreshKey={historyRefreshKey} />
+      </div>
 
         {/* ═══ 使用说明弹窗 ═══ */}
         {showHelp && (
