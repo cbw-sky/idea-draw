@@ -10,13 +10,34 @@ import {
   X,
 } from 'lucide-react';
 import { DrawRecord, addHistoryRecord, generateId } from '@/utils/storage';
-import { WORD_POOL } from '@/utils/wordPool';
+import { WORD_POOL, CATEGORY_CLUSTERS } from '@/utils/wordPool';
 import HistoryPanel from './History';
 
 const CATEGORIES = Object.keys(WORD_POOL);
 const MAX_DRAW = CATEGORIES.length; // 每个类别只抽一个，最多抽 MAX_DRAW 个类别
 const TOTAL_WORDS = CATEGORIES.reduce((sum, c) => sum + WORD_POOL[c].length, 0);
 const ALL_WORDS = CATEGORIES.flatMap(c => WORD_POOL[c]);
+
+// 弱关联类别选择：同簇优先（60%），但不强制，保证类别间"有一点关联但不太强"
+function pickRelatedCategories(n: number): string[] {
+  const picked: string[] = [];
+  const first = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
+  picked.push(first);
+  const clusterOf = (cat: string) => CATEGORY_CLUSTERS.find(cl => cl.includes(cat)) || [];
+  while (picked.length < n) {
+    const relatedSet = new Set(picked.flatMap(c => clusterOf(c)));
+    const related = CATEGORIES.filter(c => !picked.includes(c) && relatedSet.has(c));
+    const remaining = CATEGORIES.filter(c => !picked.includes(c));
+    let next: string;
+    if (related.length > 0 && Math.random() < 0.6) {
+      next = related[Math.floor(Math.random() * related.length)];
+    } else {
+      next = remaining[Math.floor(Math.random() * remaining.length)];
+    }
+    picked.push(next);
+  }
+  return picked;
+}
 
 interface ReelState {
   word: string;
@@ -87,9 +108,8 @@ export default function Inspire() {
   const spin = useCallback(() => {
     if (CATEGORIES.length < drawCount) return;
 
-    // 随机选 drawCount 个不同类别，每个类别随机抽 1 个词
-    const shuffledCats = [...CATEGORIES].sort(() => Math.random() - 0.5);
-    const selectedCats = shuffledCats.slice(0, drawCount);
+    // 弱关联选 drawCount 个不同类别（同簇优先，但不强制），每个类别随机抽 1 个词
+    const selectedCats = pickRelatedCategories(drawCount);
     const targets = selectedCats.map(cat => {
       const words = WORD_POOL[cat];
       return words[Math.floor(Math.random() * words.length)];
