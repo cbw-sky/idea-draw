@@ -18,7 +18,7 @@ const MAX_DRAW = CATEGORIES.length; // 每个类别只抽一个，最多抽 MAX_
 const TOTAL_WORDS = CATEGORIES.reduce((sum, c) => sum + WORD_POOL[c].length, 0);
 const ALL_WORDS = CATEGORIES.flatMap(c => WORD_POOL[c]);
 
-// 弱关联类别选择：同簇优先（60%），但不强制，保证类别间"有一点关联但不太强"
+// 弱关联类别选择：同簇优先（70%），但不强制，保证类别间"有一点关联但不太强"
 function pickRelatedCategories(n: number): string[] {
   const picked: string[] = [];
   const first = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)];
@@ -29,7 +29,7 @@ function pickRelatedCategories(n: number): string[] {
     const related = CATEGORIES.filter(c => !picked.includes(c) && relatedSet.has(c));
     const remaining = CATEGORIES.filter(c => !picked.includes(c));
     let next: string;
-    if (related.length > 0 && Math.random() < 0.6) {
+    if (related.length > 0 && Math.random() < 0.7) {
       next = related[Math.floor(Math.random() * related.length)];
     } else {
       next = remaining[Math.floor(Math.random() * remaining.length)];
